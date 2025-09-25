@@ -1,0 +1,10 @@
+customtkinter
+Pillow
+pygame
+opencv-python
+pyautogui
+pyperclip
+SpeechRecognition
+openai
+pywin32
+python-dotenv
