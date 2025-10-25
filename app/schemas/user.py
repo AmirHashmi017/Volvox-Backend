@@ -5,6 +5,7 @@ from datetime import datetime
 class UserSignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
+    fullName: str
 
 
 class UserLoginRequest(BaseModel):
@@ -14,6 +15,7 @@ class UserLoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: str = Field(alias="_id")
     email: EmailStr
+    fullName: str
     created_at: datetime
     
     class Config:
