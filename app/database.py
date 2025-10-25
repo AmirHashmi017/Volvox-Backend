@@ -1,4 +1,4 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from app.config import settings
 
 class Database:
@@ -20,3 +20,15 @@ async def close_mongo_connection():
 async def get_collection(collection_name: str):
     database = await get_database()
     return database[collection_name]
+
+from typing import Optional
+
+async def get_gridfs_bucket(bucket_name: Optional[str] = None) -> AsyncIOMotorGridFSBucket:
+    """Return an AsyncIOMotorGridFSBucket for the current DB.
+
+    Parameters:
+    - bucket_name: Optional custom GridFS bucket name. Defaults to settings.GRIDFS_BUCKET.
+    """
+    database = await get_database()
+    bucket = AsyncIOMotorGridFSBucket(database, bucket_name=bucket_name or settings.GRIDFS_BUCKET)
+    return bucket
