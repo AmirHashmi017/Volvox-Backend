@@ -6,6 +6,7 @@ class UserModel(BaseModel):
     id: Optional[str] = Field(alias="_id", default=None)
     email: EmailStr
     hashed_password: str
+    fullName: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

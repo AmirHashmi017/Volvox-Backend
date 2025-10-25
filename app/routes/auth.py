@@ -32,6 +32,7 @@ async def signup(user_data: UserSignupRequest):
     user_dict = {
         "email": user_data.email,
         "hashed_password": hash_password(user_data.password),
+        "fullName": user_data.fullName,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -44,6 +45,7 @@ async def signup(user_data: UserSignupRequest):
     user_response = UserResponse(
         _id=str(user_dict["_id"]),
         email=user_dict["email"],
+        fullName= user_dict['fullName'],
         created_at=user_dict["created_at"]
     )
     
@@ -77,6 +79,7 @@ async def login(credentials: UserLoginRequest):
     user_response = UserResponse(
         _id=str(user["_id"]),
         email=user["email"],
+        fullName= user["fullName"],
         created_at=user["created_at"]
     )
     
@@ -94,6 +97,7 @@ async def get_current_user_info(
     return UserResponse(
         _id=str(current_user.id),
         email=current_user.email,
+        fullName= current_user.fullName,
         created_at=current_user.created_at
     )
 
