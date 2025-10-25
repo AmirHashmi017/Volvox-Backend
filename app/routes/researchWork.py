@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
 from app.schemas.researchWork import (
     ResearchResponse
@@ -8,7 +8,7 @@ from app.models.reseachWork import ResearchModel
 from app.database import get_collection, get_gridfs_bucket
 from app.config import settings
 from app.middleware.auth import get_current_user
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from typing import List, AsyncGenerator
 import mimetypes
@@ -22,7 +22,6 @@ async def addResearch(
     file: UploadFile = File(...),
     current_user: UserModel = Depends(get_current_user)
 ):
-    """Upload file to GridFS and create a research record."""
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
     bucket = await get_gridfs_bucket()
 
@@ -30,7 +29,7 @@ async def addResearch(
     extension = (Path(filename).suffix or "").lstrip(".")
     content_type = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
-    grid_in = await bucket.open_upload_stream(
+    grid_in = bucket.open_upload_stream(
         filename,
         metadata={
             "contentType": content_type,
@@ -38,7 +37,6 @@ async def addResearch(
             "extension": extension,
             "researchName": researchName,
         },
-        content_type=content_type,
     )
 
     try:
@@ -73,10 +71,46 @@ async def addResearch(
 
 
 @router.get("/", response_model=List[ResearchResponse])
-async def list_research(current_user: UserModel = Depends(get_current_user)):
-    """Return all research entries for the current user."""
+async def list_research(
+    current_user: UserModel = Depends(get_current_user),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    search: str | None = Query(None, description="Search by researchName or fileName (case-insensitive)"),
+    start: datetime | None = Query(None, description="Filter createdAt >= this ISO datetime"),
+    end: datetime | None = Query(None, description="Filter createdAt <= this ISO datetime"),
+):
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
-    cursor = research_collection.find({"user_id": ObjectId(current_user.id)})
+
+    # Build base query
+    query: dict = {"user_id": ObjectId(current_user.id)}
+
+    # Search filter across researchName and fileName
+    if search:
+        query["$or"] = [
+            {"researchName": {"$regex": search, "$options": "i"}},
+            {"fileName": {"$regex": search, "$options": "i"}},
+        ]
+
+    # Time range filtering on createdAt
+    created_filter: dict = {}
+    if start:
+        # Normalize to UTC if aware
+        if start.tzinfo is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        created_filter["$gte"] = start
+    if end:
+        if end.tzinfo is not None:
+            end = end.astimezone(timezone.utc).replace(tzinfo=None)
+        created_filter["$lte"] = end
+    if created_filter:
+        query["createdAt"] = created_filter
+
+    cursor = (
+        research_collection
+        .find(query)
+        .skip(offset)
+        .limit(limit)
+    )
     items = []
     async for doc in cursor:
         model = ResearchModel(**doc)
@@ -89,7 +123,6 @@ async def list_research(current_user: UserModel = Depends(get_current_user)):
 
 @router.get("/file/{file_id}")
 async def download_file(file_id: str, current_user: UserModel = Depends(get_current_user)):
-    """Stream a file from GridFS by file_id, ensuring owner access."""
     bucket = await get_gridfs_bucket()
 
     try:
@@ -97,7 +130,6 @@ async def download_file(file_id: str, current_user: UserModel = Depends(get_curr
     except Exception:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
-    # Optional access control: ensure the file belongs to the current user
     metadata = getattr(grid_out, "metadata", {}) or {}
     if metadata.get("userId") and metadata.get("userId") != str(current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this file")
