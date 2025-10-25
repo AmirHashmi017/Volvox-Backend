@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     # MongoDB Settings
     MONGO_DB_URI: str
     MONGODB_DB: str = "Volvox"
+    GRIDFS_BUCKET: str = "fs"
     
     JWT_SECRET_KEY: str = "volvoxpersonalaiassistantresearc"
     JWT_ALGORITHM: str = "HS256"
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["*"]
 
     USERS_COLLECTION: str = "users"
+    RESEARCH_COLLECTION: str = "research"
 
     OPENAI_API_KEY: Optional[str] = None
 
