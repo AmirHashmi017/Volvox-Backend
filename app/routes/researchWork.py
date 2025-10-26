@@ -108,6 +108,7 @@ async def list_research(
     cursor = (
         research_collection
         .find(query)
+        .sort("createdAt", -1) 
         .skip(offset)
         .limit(limit)
     )
