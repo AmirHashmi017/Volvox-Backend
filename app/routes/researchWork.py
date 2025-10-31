@@ -69,6 +69,104 @@ async def addResearch(
     }
     return response
 
+@router.patch("/updateResearch/{id}", response_model=ResearchResponse, status_code=status.HTTP_200_OK)
+async def updateResearch(
+    id: str,
+    researchName: str = Form(...),
+    file: UploadFile | None = File(None), 
+    current_user: UserModel = Depends(get_current_user),
+):
+    research_collection = await get_collection(settings.RESEARCH_COLLECTION)
+    bucket = await get_gridfs_bucket()
+
+    existing = await research_collection.find_one({
+        "_id": ObjectId(id),
+        "user_id": ObjectId(current_user.id)
+    })
+
+    if not existing:
+        raise HTTPException(status_code=404, detail="Research not found or not owned by user")
+
+    update_fields = {
+        "researchName": researchName,
+        "updatedAt": datetime.utcnow(),
+    }
+
+    if file:
+        old_file_id = existing.get("file_id")
+        if old_file_id:
+            try:
+                await bucket.delete(ObjectId(old_file_id))
+            except Exception as e:
+                print(f"⚠️ Failed to delete old file: {e}")
+
+        filename = file.filename or "upload"
+        extension = (Path(filename).suffix or "").lstrip(".")
+        content_type = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+
+        grid_in = bucket.open_upload_stream(
+            filename,
+            metadata={
+                "contentType": content_type,
+                "userId": str(current_user.id),
+                "extension": extension,
+                "researchName": researchName,
+            },
+        )
+
+        try:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                await grid_in.write(chunk)
+        finally:
+            await grid_in.close()
+
+        update_fields.update({
+            "fileName": filename,
+            "extension": extension,
+            "file_id": grid_in._id,
+        })
+
+    updated_doc = await research_collection.find_one_and_update(
+        {"_id": ObjectId(id)},
+        {"$set": update_fields},
+        return_document=True,
+    )
+
+    if not updated_doc:
+        raise HTTPException(status_code=500, detail="Failed to update research")
+
+    model = ResearchModel(**updated_doc)
+    response = {
+        **model.model_dump(by_alias=True),
+        "fileUrl": f"{settings.API_V1_PREFIX}/research/file/{model.fileId}",
+    }
+
+    return response
+
+@router.delete("/deleteResearch/{id}", status_code=status.HTTP_200_OK)
+async def deleteResearch(id:str,
+    current_user:UserModel= Depends(get_current_user)):
+    researchCollection= await get_collection(settings.RESEARCH_COLLECTION)
+    bucket= await get_gridfs_bucket()
+    doc_to_delete= await researchCollection.find_one({"_id":ObjectId(id),
+                                                      "user_id":ObjectId(current_user.id)})
+    if not doc_to_delete:
+         raise HTTPException(status_code=404, detail="Research not found or not owned by user")
+    file_id= doc_to_delete.get("file_id")
+    if file_id:
+        try:
+            await bucket.delete(ObjectId(file_id))
+        except Exception as e:
+            print(f" Failed to delete file: {e}")
+    
+    await researchCollection.delete_one({"_id":ObjectId(id),
+                                        "user_id":ObjectId(current_user.id)})
+    return {"message": "Research and associated file deleted successfully"}
+    
+
 
 @router.get("/", response_model=List[ResearchResponse])
 async def list_research(
