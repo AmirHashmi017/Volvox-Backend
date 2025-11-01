@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     USERS_COLLECTION: str = "users"
     RESEARCH_COLLECTION: str = "research"
+    CHATHISTORY_COLLECTION: str= "chatHistory"
 
     OPENAI_API_KEY: Optional[str] = None
 
