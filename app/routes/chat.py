@@ -39,7 +39,7 @@ async def askLLM(
             )
 
         await chatHistory.update_one(
-            "_id": ObjectId(chat_id),
+            {"_id": ObjectId(chat_id)},
             {
                 "$push": {"messages": new_message.dict(by_alias=True)},
             },
