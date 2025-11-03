@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional,List
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Message(BaseModel):
     question: str
@@ -22,7 +22,7 @@ class chatHistoryModel(BaseModel):
     title: str
 
     messages: List[Message] = Field(default_factory=list)
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = ConfigDict(populate_by_name=True)
 

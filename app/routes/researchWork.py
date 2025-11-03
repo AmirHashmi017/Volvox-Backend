@@ -56,7 +56,7 @@ async def addResearch(
         "fileName": filename,
         "extension": extension,
         "file_id": file_id,
-        "createdAt": datetime.utcnow(),
+        "createdAt": datetime.now(timezone.utc),
     }
 
     result = await research_collection.insert_one(doc)
@@ -89,7 +89,7 @@ async def updateResearch(
 
     update_fields = {
         "researchName": researchName,
-        "updatedAt": datetime.utcnow(),
+        "updatedAt": datetime.now(timezone.utc),
     }
 
     if file:
