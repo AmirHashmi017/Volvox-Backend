@@ -12,7 +12,7 @@ from app.utils.auth import create_access_token
 from app.database import get_collection
 from app.config import settings
 from app.middleware.auth import get_current_user
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -33,8 +33,8 @@ async def signup(user_data: UserSignupRequest):
         "email": user_data.email,
         "hashed_password": hash_password(user_data.password),
         "fullName": user_data.fullName,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     }
     
     result = await users_collection.insert_one(user_dict)

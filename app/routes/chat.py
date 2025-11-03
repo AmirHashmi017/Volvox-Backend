@@ -52,7 +52,7 @@ async def askLLM(
             "user_id": current_user.id,
             "title": title,
             "messages": [new_message.dict(by_alias=True)],
-            "createdAt": datetime.utcnow()
+            "createdAt": datetime.now(timezone.utc)
             }
         )
         final_chat_id= str(insert_result.inserted_id)
