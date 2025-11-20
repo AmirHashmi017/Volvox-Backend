@@ -24,3 +24,6 @@ tiktoken
 faiss-cpu
 youtube-transcript-api
 numpy
+
+PyPDF2
+python-docx
