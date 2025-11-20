@@ -23,7 +23,7 @@ async def askLLM(
     document_id: Optional[str]= Query(None),
     current_user: UserModel= Depends(get_current_user)
 ):
-    response= generateResponse(question,chat_id,document_id)
+    response= await generateResponse(question,chat_id,document_id)
     chatHistory= await get_collection(settings.CHATHISTORY_COLLECTION)
     new_message = Message(
         question=question,

@@ -10,10 +10,12 @@ async def generateResponse(question,chat_id=None,document_id=None):
     load_dotenv()
 
     chatHistoryModel= await get_collection(settings.CHATHISTORY_COLLECTION)
-    chat= await chatHistoryModel.findOne({"_id":ObjectId(chat_id)})
-    chat_history= chat.get('messages',[])
-    history= "\n".join([f"User: {m['question']}\nAssistant: {m['response']}" for m in chat_history])
-    print(chat_history)
+    chat= await chatHistoryModel.find_one({"_id":ObjectId(chat_id)})
+    if(chat):
+        chat_history= chat.get('messages',[])
+        chat_history_str= "\n".join([f"User: {m['question']}\nAssistant: {m['response']}" for m in chat_history])
+    else:
+        chat_history_str=""
     response=""
     llm= ChatGoogleGenerativeAI(model='gemini-2.5-flash')
     parser= StrOutputParser()
@@ -23,12 +25,12 @@ async def generateResponse(question,chat_id=None,document_id=None):
             You are a helpful AI Assistant.
             Answer the following question
             Question: {question}
-            This is all the previous Chat History {history}
+            This is all the previous Chat History {chat_history}
         ''',
-        input_variables=['question','history']
+        input_variables=['question','chat_history']
     )
     final_chain= prompt | llm | parser
-    response= final_chain.invoke({"question":question,"history":history})
+    response= final_chain.invoke({"question":question,"chat_history":chat_history_str})
         
     return response
     
