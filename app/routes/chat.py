@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, File, Form, Query
 from fastapi.responses import StreamingResponse
 from app.utils.rag_utils import generateResponse
+from app.utils.summarizer import SummarizeResearch, SummarizeVideo
 
 from app.models.user import UserModel
 from app.models.chatHistory import Message
@@ -13,6 +14,10 @@ from bson import ObjectId
 from typing import List, AsyncGenerator, Optional
 import mimetypes
 from pathlib import Path
+from pydantic import BaseModel
+
+class SummarizeBody(BaseModel):
+    documents: list[str]
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -115,3 +120,21 @@ async def deleteChat(
     await chatHistoryModel.delete_one({"_id":ObjectId(chat_id),
                                            "user_id":current_user.id})
     return "Chat Deleted Successfully"
+
+@router.post('/summarize-research',response_model=str,status_code=status.HTTP_200_OK)
+async def summarizeResearch(
+        body: SummarizeBody,
+        current_user:UserModel= Depends(get_current_user)
+        ):
+    summary= await SummarizeResearch(body.documents)
+    return summary
+
+@router.post('/summarize-video',response_model=str,status_code=status.HTTP_200_OK)
+async def summarizeVideo(
+        video_url: str,
+        current_user: UserModel= Depends(get_current_user)
+    ):
+    summary= await SummarizeVideo(video_url)
+    return summary
+    
+    
