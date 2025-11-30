@@ -57,7 +57,9 @@ async def SummarizeVideo(video_url:str):
         retriever= await get_vector_store_retriever(transcript)
         prompt= PromptTemplate(
             template="""
-            You are a helpful AI Assistant summarize this {content} of video
+            You are a helpful AI Assistant summarize this {content} of video. The content can 
+            be irrelevant to each other becaus emay it's different documents but you have to cover 
+            all the aspects.
             """,
             input_variables=['content']
         )
