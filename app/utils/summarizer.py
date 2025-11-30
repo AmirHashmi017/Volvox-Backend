@@ -29,12 +29,9 @@ def extract_video_id(url):
 async def SummarizeResearch(documents:List[str]):
     try:
         content_to_summarize=""
-        question= 'Summarize this Content'
         for document in documents:
             document_content= await get_document_content(document)
             content_to_summarize+=document_content
-
-        retriever= await get_vector_store_retriever(content_to_summarize)
 
         prompt= PromptTemplate(
         template="""
@@ -44,9 +41,9 @@ async def SummarizeResearch(documents:List[str]):
         )
         llm= ChatGoogleGenerativeAI(model='gemini-2.5-flash')
         parser= StrOutputParser()
-        summarize_chain= retriever | RunnableLambda(format_docs) | prompt | llm | parser
+        summarize_chain= prompt | llm | parser
 
-        result= await summarize_chain.ainvoke(question)
+        result= await summarize_chain.ainvoke(content_to_summarize)
         return result
     except Exception as e:
         return str(e)
