@@ -9,6 +9,7 @@ pydantic-settings
 pydantic[email]
 python-dotenv
 python-multipart
+httpx
 
 langchain-classic==1.0.0
 langchain-community==0.4.1
