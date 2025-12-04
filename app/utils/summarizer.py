@@ -13,23 +13,13 @@ import httpx
 
 load_dotenv()
 
-def get_proxy_config() -> Optional[Dict[str, str]]:
-    """Get proxy configuration from environment variables for production deployment"""
-    proxy_url = os.getenv('PROXY_URL')  # e.g., "http://proxy.example.com:8080"
-    if proxy_url:
-        return {
-            "http://": proxy_url,
-            "https://": proxy_url
-        }
-    return None
-
 async def fetch_transcript_with_proxy(video_id: str) -> Optional[str]:
     """
     Alternative method using HTTP client with proxy support.
     This bypasses YouTube's bot detection by using residential proxies.
     """
     try:
-        proxy_config = get_proxy_config()
+        proxy_url = os.getenv('PROXY_URL')
         
         # Configure HTTP client with proxy
         client_config = {
@@ -42,8 +32,9 @@ async def fetch_transcript_with_proxy(video_id: str) -> Optional[str]:
             }
         }
         
-        if proxy_config:
-            client_config["proxies"] = proxy_config
+        # Add proxy if configured (httpx uses 'proxy' not 'proxies')
+        if proxy_url:
+            client_config["proxy"] = proxy_url
         
         async with httpx.AsyncClient(**client_config) as client:
             # Fetch video page
