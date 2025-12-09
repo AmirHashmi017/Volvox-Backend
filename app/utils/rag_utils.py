@@ -3,6 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import SystemMessage,HumanMessage,AIMessage
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import FAISS
 from langchain_core.runnables import RunnableLambda
 from dotenv import load_dotenv
@@ -13,6 +14,26 @@ from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
 import csv
 import io
+
+async def run_web_search(query: str, k: int = 4) -> str:
+    try:
+        tavily = TavilySearchResults(k=k)
+        results = tavily.run(query)
+
+        if not results:
+            return ""
+
+        formatted = "\n\n".join(
+            [
+                f"Title: {item.get('title')}\nURL: {item.get('url')}\nSnippet: {item.get('content')}"
+                for item in results
+            ]
+        )
+
+        return formatted
+
+    except Exception as e:
+        return f"Web search error: {str(e)}"
 
 
 async def parse_text_file(file_content: bytes) -> str:
@@ -109,7 +130,7 @@ async def get_vector_store_retriever(document_content:str):
 def format_docs(retrieved_docs):
     return "\n\n".join(doc.page_content for doc in retrieved_docs)
 
-async def generateResponse(question,chat_id=None,document_id=None):
+async def generateResponse(question,chat_id=None,document_id=None,web_search=False):
     load_dotenv()
     context_text = None
     if(document_id):
@@ -117,6 +138,11 @@ async def generateResponse(question,chat_id=None,document_id=None):
         retriever= await get_vector_store_retriever(document_content)
         context_chain= retriever | RunnableLambda(format_docs)
         context_text= await context_chain.ainvoke(question)
+
+    web_context = ""
+    if web_search:
+        web_context = await run_web_search(question)
+        print(web_context)
 
     if context_text:
         system_prompt = f"""
@@ -133,6 +159,13 @@ async def generateResponse(question,chat_id=None,document_id=None):
         """
     else:
         system_prompt = "You are a helpful AI assistant."
+    
+    if web_context:
+        system_prompt += f"""
+
+        WEB SEARCH RESULTS:
+        {web_context}
+        """
 
     chatHistoryModel= await get_collection(settings.CHATHISTORY_COLLECTION)
     chat= await chatHistoryModel.find_one({"_id":ObjectId(chat_id)})
