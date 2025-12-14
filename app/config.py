@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     
     ALLOWED_ORIGINS: List[str] = ["*"]
 
-    USERS_COLLECTION: str = "users"
     RESEARCH_COLLECTION: str = "research"
     CHATHISTORY_COLLECTION: str= "chatHistory"
 
@@ -28,7 +27,6 @@ class Settings(BaseSettings):
         extra="ignore",  
     )
 
-    # Normalize MONGO_DB_URI in case .env contains quotes/extra spaces
     @field_validator("MONGO_DB_URI", mode="before")
     @classmethod
     def normalize_mongo_uri(cls, v: str) -> str:
