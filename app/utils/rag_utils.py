@@ -3,8 +3,8 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import SystemMessage,HumanMessage,AIMessage
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import FAISS
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.runnables import RunnableLambda
 from dotenv import load_dotenv
 from app.database import get_collection,get_gridfs_bucket
@@ -14,6 +14,7 @@ from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
 import csv
 import io
+
 
 async def run_web_search(query: str, k: int = 4) -> str:
     try:
@@ -34,7 +35,6 @@ async def run_web_search(query: str, k: int = 4) -> str:
 
     except Exception as e:
         return f"Web search error: {str(e)}"
-
 
 async def parse_text_file(file_content: bytes) -> str:
     return file_content.decode('utf-8', errors='ignore')
@@ -142,7 +142,6 @@ async def generateResponse(question,chat_id=None,document_id=None,web_search=Fal
     web_context = ""
     if web_search:
         web_context = await run_web_search(question)
-        print(web_context)
 
     if context_text:
         system_prompt = f"""
@@ -155,10 +154,12 @@ async def generateResponse(question,chat_id=None,document_id=None,web_search=Fal
         INSTRUCTION:
         - If the question is unrelated to the context, first say:
           "This question is not related to the attached content."
-          Then answer normally.
+          Then answer normally. Remeber the context can be the History messages you have also 
+          not necessarily document context.
         """
     else:
-        system_prompt = "You are a helpful AI assistant."
+        system_prompt = """You are a helpful AI assistant. 
+        You have to see the past history attached to you and see the context"""
     
     if web_context:
         system_prompt += f"""
