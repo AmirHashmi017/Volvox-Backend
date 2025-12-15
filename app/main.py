@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routes import researchWork, chat
+from app.routes import auth, researchWork, chat
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,6 +27,7 @@ async def startup_event():
 async def shutdown_event():
     await close_mongo_connection()
 
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(researchWork.router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat.router, prefix=settings.API_V1_PREFIX)
 

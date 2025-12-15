@@ -3,9 +3,11 @@ from fastapi.responses import StreamingResponse
 from app.schemas.researchWork import (
     ResearchResponse
 )
+from app.models.user import UserModel
 from app.models.reseachWork import ResearchModel
 from app.database import get_collection, get_gridfs_bucket
 from app.config import settings
+from app.middleware.auth import get_current_user
 from datetime import datetime, timezone
 from bson import ObjectId
 from typing import List, AsyncGenerator
@@ -16,9 +18,9 @@ router = APIRouter(prefix="/research", tags=["Research"])
 
 @router.post('/addResearch', response_model=ResearchResponse, status_code=status.HTTP_201_CREATED)
 async def addResearch(
-    user_id: str = Query(..., alias="user_id"),
     researchName: str = Form(...),
     file: UploadFile = File(...),
+    current_user: UserModel = Depends(get_current_user)
 ):
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
     bucket = await get_gridfs_bucket()
@@ -31,7 +33,7 @@ async def addResearch(
         filename,
         metadata={
             "contentType": content_type,
-            "userId": str(user_id),
+            "userId": str(current_user.id),
             "extension": extension,
             "researchName": researchName,
         },
@@ -49,7 +51,7 @@ async def addResearch(
     file_id = grid_in._id
 
     doc = {
-        "user_id": ObjectId(user_id),
+        "user_id": ObjectId(current_user.id),
         "researchName": researchName,
         "fileName": filename,
         "extension": extension,
@@ -70,16 +72,16 @@ async def addResearch(
 @router.patch("/updateResearch/{id}", response_model=ResearchResponse, status_code=status.HTTP_200_OK)
 async def updateResearch(
     id: str,
-    user_id: str = Query(..., alias="user_id"),
     researchName: str = Form(...),
     file: UploadFile | None = File(None), 
+    current_user: UserModel = Depends(get_current_user),
 ):
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
     bucket = await get_gridfs_bucket()
 
     existing = await research_collection.find_one({
         "_id": ObjectId(id),
-        "user_id": ObjectId(user_id)
+        "user_id": ObjectId(current_user.id)
     })
 
     if not existing:
@@ -106,7 +108,7 @@ async def updateResearch(
             filename,
             metadata={
                 "contentType": content_type,
-                "userId": str(user_id),
+                "userId": str(current_user.id),
                 "extension": extension,
                 "researchName": researchName,
             },
@@ -146,11 +148,11 @@ async def updateResearch(
 
 @router.delete("/deleteResearch/{id}", status_code=status.HTTP_200_OK)
 async def deleteResearch(id:str,
-    user_id: str = Query(..., alias="user_id"),):
+    current_user:UserModel= Depends(get_current_user)):
     researchCollection= await get_collection(settings.RESEARCH_COLLECTION)
     bucket= await get_gridfs_bucket()
     doc_to_delete= await researchCollection.find_one({"_id":ObjectId(id),
-                                                      "user_id":ObjectId(user_id)})
+                                                      "user_id":ObjectId(current_user.id)})
     if not doc_to_delete:
          raise HTTPException(status_code=404, detail="Research not found or not owned by user")
     file_id= doc_to_delete.get("file_id")
@@ -161,14 +163,14 @@ async def deleteResearch(id:str,
             print(f" Failed to delete file: {e}")
     
     await researchCollection.delete_one({"_id":ObjectId(id),
-                                        "user_id":ObjectId(user_id)})
+                                        "user_id":ObjectId(current_user.id)})
     return {"message": "Research and associated file deleted successfully"}
     
 
 
 @router.get("/", response_model=List[ResearchResponse])
 async def list_research(
-    user_id: str = Query(..., alias="user_id"),
+    current_user: UserModel = Depends(get_current_user),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     search: str | None = Query(None, description="Search by researchName or fileName (case-insensitive)"),
@@ -178,7 +180,7 @@ async def list_research(
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
 
     # Build base query
-    query: dict = {"user_id": ObjectId(user_id)}
+    query: dict = {"user_id": ObjectId(current_user.id)}
 
     # Search filter across researchName and fileName
     if search:
@@ -219,7 +221,7 @@ async def list_research(
 
 
 @router.get("/file/{file_id}")
-async def download_file(file_id: str, user_id: str = Query(..., alias="user_id")):
+async def download_file(file_id: str, current_user: UserModel = Depends(get_current_user)):
     bucket = await get_gridfs_bucket()
 
     try:
@@ -228,7 +230,7 @@ async def download_file(file_id: str, user_id: str = Query(..., alias="user_id")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
     metadata = getattr(grid_out, "metadata", {}) or {}
-    if metadata.get("userId") and metadata.get("userId") != str(user_id):
+    if metadata.get("userId") and metadata.get("userId") != str(current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this file")
 
     async def file_iterator() -> AsyncGenerator[bytes, None]:

@@ -47,7 +47,7 @@ async def SummarizeResearch(documents:List[str]):
         return result
     except Exception as e:
         return str(e)
-    
+
 async def SummarizeTextResearch(content:str):
     try:
         prompt= PromptTemplate(
@@ -64,6 +64,7 @@ async def SummarizeTextResearch(content:str):
         return result
     except Exception as e:
         return str(e)
+
 
 async def SummarizeVideo(video_url:str):
     try:
