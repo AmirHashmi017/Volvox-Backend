@@ -1,10 +1,11 @@
 from typing import List, Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # MongoDB Settings
     MONGO_DB_URI: str
     MONGODB_DB: str = "Volvox"
+    GRIDFS_BUCKET: str = "fs"
     
     JWT_SECRET_KEY: str = "volvoxpersonalaiassistantresearc"
     JWT_ALGORITHM: str = "HS256"
@@ -16,6 +17,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["*"]
 
     USERS_COLLECTION: str = "users"
+    RESEARCH_COLLECTION: str = "research"
+    CHATHISTORY_COLLECTION: str= "chatHistory"
 
     OPENAI_API_KEY: Optional[str] = None
 
@@ -24,5 +27,16 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",  
     )
+
+    # Normalize MONGO_DB_URI in case .env contains quotes/extra spaces
+    @field_validator("MONGO_DB_URI", mode="before")
+    @classmethod
+    def normalize_mongo_uri(cls, v: str) -> str:
+        if isinstance(v, str):
+            v = v.strip()
+            if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+                v = v[1:-1]
+            return v.strip()
+        return v
 
 settings = Settings()
