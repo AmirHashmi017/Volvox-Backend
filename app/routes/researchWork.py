@@ -167,7 +167,6 @@ async def deleteResearch(id:str,
     return {"message": "Research and associated file deleted successfully"}
     
 
-
 @router.get("", response_model=List[ResearchResponse])
 async def list_research(
     current_user: UserModel = Depends(get_current_user),
