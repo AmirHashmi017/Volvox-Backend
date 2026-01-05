@@ -178,20 +178,20 @@ async def list_research(
 ):
     research_collection = await get_collection(settings.RESEARCH_COLLECTION)
 
-    # Build base query
+   
     query: dict = {"user_id": ObjectId(current_user.id)}
 
-    # Search filter across researchName and fileName
+    
     if search:
         query["$or"] = [
             {"researchName": {"$regex": search, "$options": "i"}},
             {"fileName": {"$regex": search, "$options": "i"}},
         ]
 
-    # Time range filtering on createdAt
+    
     created_filter: dict = {}
     if start:
-        # Normalize to UTC if aware
+       
         if start.tzinfo is not None:
             start = start.astimezone(timezone.utc).replace(tzinfo=None)
         created_filter["$gte"] = start
