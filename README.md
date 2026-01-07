@@ -7,8 +7,7 @@ It integrates modern LLM workflows, vector search, and scalable document managem
 ---
 
 ## 🌐 Live Demo
-🔗 **Volvox (Live):**  
-https://volvox-alpha-frontend-suit.vercel.app
+🔗 **Volvox (Live):** https://volvox-alpha-frontend-suit.vercel.app
 
 ---
 
