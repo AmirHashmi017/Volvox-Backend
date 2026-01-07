@@ -75,6 +75,10 @@ https://volvox-alpha-frontend-suit.vercel.app
 - MongoDB
 - GridFS (large file storage)
 
+### Deployment
+- HuggingFace
+- Vercel
+
 ### AI / LLM
 - Gemini 2.5 Flash
 - Retrieval-Augmented Generation (RAG)
@@ -100,7 +104,7 @@ https://volvox-alpha-frontend-suit.vercel.app
 ### Backend Setup
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn app:main --reload
 ```
 
 ### Frontend Setup
